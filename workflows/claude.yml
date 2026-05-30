@@ -1,0 +1,35 @@
+name: Claude Code Review
+
+on:
+  # 1. PR이 처음 Open되거나, Draft 해제(Ready for review)되거나, 새로운 코드가 Push되었을 때
+  pull_request:
+    types: [opened, ready_for_review, synchronize]
+  
+  # 2. Issue나 PR에서 사람이 댓글로 @claude를 호출했을 때
+  issue_comment:
+    types: [created]
+
+jobs:
+  claude-review:
+    # PR이 Draft 상태일 때는 실행하지 않고 패스합니다. (요구사항 반영)
+    if: |
+      (github.event_name == 'pull_request' && github.event.pull_request.draft == false) ||
+      (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude'))
+    
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull_requests: write
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Claude Code Action
+        uses: anthropics/claude-code-action@v1
+        with:
+          # 등록해주신 OAuth 토큰을 사용합니다.
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # GitHub 앱 인증을 위한 토큰 자동 주입
+          github_token: ${{ secrets.GITHUB_TOKEN }}
